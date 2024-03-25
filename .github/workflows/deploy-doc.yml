@@ -38,7 +38,7 @@ jobs:
         uses: cpina/github-action-push-to-another-repository@main
         with:
           source-directory: "doc/"
-          destination-github-username: "signetlabdei"
+          destination-github-username: "rogersv9"
           destination-repository-name: "lorawan-docs"
-          user-email: paginmatte@dei.unipd.it
+          user-email: rogersanvi.sanchez@gmail.com
           target-branch: master
