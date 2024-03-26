@@ -41,4 +41,4 @@ jobs:
           destination-github-username: "rogersv9"
           destination-repository-name: "lorawan-docs"
           user-email: rogersanvi.sanchez@gmail.com
-          target-branch: master
+          target-branch: develop
