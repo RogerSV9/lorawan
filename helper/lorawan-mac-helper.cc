@@ -149,7 +149,7 @@ LorawanMacHelper::ConfigureForAlohaRegion(Ptr<ClassAEndDeviceLorawanMac> edMac) 
     edMac->SetTxDbmForTxPower(std::vector<double>{16, 14, 12, 10, 8, 6, 4, 2});
 
     ////////////////////////////////////////////////////////////
-    // Matrix to know which data rate the gateway will respond with //
+    // Matrix to know which DataRate the GW will respond with //
     ////////////////////////////////////////////////////////////
     LorawanMac::ReplyDataRateMatrix matrix = {{{{0, 0, 0, 0, 0, 0}},
                                                {{1, 0, 0, 0, 0, 0}},
@@ -222,10 +222,10 @@ LorawanMacHelper::ApplyCommonAlohaConfigurations(Ptr<LorawanMac> lorawanMac) con
 
     lorawanMac->SetLogicalLoraChannelHelper(channelHelper);
 
-    ///////////////////////////////////////////////////////////
-    // Data rate -> Spreading factor, Data rate -> Bandwidth //
-    // and Data rate -> MaxAppPayload conversions            //
-    ///////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////
+    // DataRate -> SF, DataRate -> Bandwidth     //
+    // and DataRate -> MaxAppPayload conversions //
+    ///////////////////////////////////////////////
     lorawanMac->SetSfForDataRate(std::vector<uint8_t>{12, 11, 10, 9, 8, 7, 7});
     lorawanMac->SetBandwidthForDataRate(
         std::vector<double>{125000, 125000, 125000, 125000, 125000, 125000, 250000});
@@ -246,7 +246,7 @@ LorawanMacHelper::ConfigureForEuRegion(Ptr<ClassAEndDeviceLorawanMac> edMac) con
     edMac->SetTxDbmForTxPower(std::vector<double>{16, 14, 12, 10, 8, 6, 4, 2});
 
     ////////////////////////////////////////////////////////////
-    // Matrix to know which data rate the gateway will respond with //
+    // Matrix to know which DataRate the GW will respond with //
     ////////////////////////////////////////////////////////////
     LorawanMac::ReplyDataRateMatrix matrix = {{{{0, 0, 0, 0, 0, 0}},
                                                {{1, 0, 0, 0, 0, 0}},
@@ -334,10 +334,10 @@ LorawanMacHelper::ApplyCommonEuConfigurations(Ptr<LorawanMac> lorawanMac) const
 
     lorawanMac->SetLogicalLoraChannelHelper(channelHelper);
 
-    ///////////////////////////////////////////////////////////
-    // Data rate -> Spreading factor, Data rate -> Bandwidth //
-    // and Data rate -> MaxAppPayload conversions            //
-    ///////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////
+    // DataRate -> SF, DataRate -> Bandwidth     //
+    // and DataRate -> MaxAppPayload conversions //
+    ///////////////////////////////////////////////
     lorawanMac->SetSfForDataRate(std::vector<uint8_t>{12, 11, 10, 9, 8, 7, 7});
     lorawanMac->SetBandwidthForDataRate(
         std::vector<double>{125000, 125000, 125000, 125000, 125000, 125000, 250000});
@@ -360,7 +360,7 @@ LorawanMacHelper::ConfigureForSingleChannelRegion(Ptr<ClassAEndDeviceLorawanMac>
     edMac->SetTxDbmForTxPower(std::vector<double>{16, 14, 12, 10, 8, 6, 4, 2});
 
     ////////////////////////////////////////////////////////////
-    // Matrix to know which DataRate the gateway will respond with //
+    // Matrix to know which DataRate the GW will respond with //
     ////////////////////////////////////////////////////////////
     LorawanMac::ReplyDataRateMatrix matrix = {{{{0, 0, 0, 0, 0, 0}},
                                                {{1, 0, 0, 0, 0, 0}},
@@ -442,10 +442,10 @@ LorawanMacHelper::ApplyCommonSingleChannelConfigurations(Ptr<LorawanMac> lorawan
 
     lorawanMac->SetLogicalLoraChannelHelper(channelHelper);
 
-    ///////////////////////////////////////////////////////////
-    // Data rate -> Spreading factor, Data rate -> Bandwidth //
-    // and Data rate -> MaxAppPayload conversions            //
-    ///////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////
+    // DataRate -> SF, DataRate -> Bandwidth     //
+    // and DataRate -> MaxAppPayload conversions //
+    ///////////////////////////////////////////////
     lorawanMac->SetSfForDataRate(std::vector<uint8_t>{12, 11, 10, 9, 8, 7, 7});
     lorawanMac->SetBandwidthForDataRate(
         std::vector<double>{125000, 125000, 125000, 125000, 125000, 125000, 250000});
@@ -498,7 +498,7 @@ LorawanMacHelper::SetSpreadingFactorsUp(NodeContainer endDevices,
         // NS_LOG_DEBUG ("Rx Power: " << highestRxPower);
         double rxPower = highestRxPower;
 
-        // Get the end device sensitivity
+        // Get the ED sensitivity
         Ptr<EndDeviceLoraPhy> edPhy = loraNetDevice->GetPhy()->GetObject<EndDeviceLoraPhy>();
         const double* edSensitivity = edPhy->sensitivity;
 
@@ -596,19 +596,59 @@ LorawanMacHelper::SetSpreadingFactorsUp(NodeContainer endDevices,
 
 } //  end function
 
+std::vector<double>
+LorawanMacHelper::computeCAD(Ptr<Node> sender, NodeContainer endDevices, Ptr<LoraChannel> channel)
+{
+    NS_LOG_FUNCTION_NOARGS();
+
+    std::vector<double> rxMap(endDevices.GetN(), 0);
+    int i = 0;
+    for (auto j = endDevices.Begin(); j != endDevices.End(); ++j)
+    {
+        Ptr<Node> object = *j;
+        Ptr<MobilityModel> position = object->GetObject<MobilityModel>();
+        NS_ASSERT(position);
+        Ptr<NetDevice> netDevice = object->GetDevice(0);
+        Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice>();
+        NS_ASSERT(loraNetDevice);
+        Ptr<ClassAEndDeviceLorawanMac> mac =
+            loraNetDevice->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+        NS_ASSERT(mac);
+
+        Ptr<MobilityModel> senderPosition = sender->GetObject<MobilityModel>();
+
+        // Assume devices transmit at 14 dBm
+        double rxPower = channel->GetRxPower(14, position, senderPosition);
+
+        NS_LOG_DEBUG ("Rx Power: " << rxPower);
+
+        // Get the ED sensitivity
+        Ptr<EndDeviceLoraPhy> edPhy = loraNetDevice->GetPhy()->GetObject<EndDeviceLoraPhy>();
+        const double* edSensitivity = edPhy->sensitivity;
+
+        if (rxPower > *edSensitivity)
+        {
+            rxMap[i] = rxPower;
+        }
+        i++;
+    } // end loop on nodes
+
+    return rxMap;
+
+} //  end function
+
 std::vector<int>
 LorawanMacHelper::SetSpreadingFactorsGivenDistribution(NodeContainer endDevices,
                                                        NodeContainer gateways,
                                                        std::vector<double> distribution)
 {
     NS_LOG_FUNCTION_NOARGS();
-    NS_ASSERT(distribution.size() == 6);
 
     std::vector<int> sfQuantity(7, 0);
     Ptr<UniformRandomVariable> uniformRV = CreateObject<UniformRandomVariable>();
     std::vector<double> cumdistr(6);
     cumdistr[0] = distribution[0];
-    for (int i = 1; i < 6; ++i)
+    for (int i = 1; i < 7; ++i)
     {
         cumdistr[i] = distribution[i] + cumdistr[i - 1];
     }
