@@ -596,44 +596,47 @@ LorawanMacHelper::SetSpreadingFactorsUp(NodeContainer endDevices,
 
 } //  end function
 
-std::vector<double>
-LorawanMacHelper::computeCAD(Ptr<Node> sender, NodeContainer endDevices, Ptr<LoraChannel> channel)
+double
+LorawanMacHelper::computeRSSIforCAD(Ptr<Node> originator, NodeContainer endDevices, Ptr<LoraChannel> channel)
 {
     NS_LOG_FUNCTION_NOARGS();
 
-    std::vector<double> rxMap(endDevices.GetN(), 0);
-    int i = 0;
+    double validRxPower = 0;
     for (auto j = endDevices.Begin(); j != endDevices.End(); ++j)
     {
-        Ptr<Node> object = *j;
-        Ptr<MobilityModel> position = object->GetObject<MobilityModel>();
-        NS_ASSERT(position);
-        Ptr<NetDevice> netDevice = object->GetDevice(0);
-        Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice>();
-        NS_ASSERT(loraNetDevice);
-        Ptr<ClassAEndDeviceLorawanMac> mac =
-            loraNetDevice->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-        NS_ASSERT(mac);
-
-        Ptr<MobilityModel> senderPosition = sender->GetObject<MobilityModel>();
-
-        // Assume devices transmit at 14 dBm
-        double rxPower = channel->GetRxPower(14, position, senderPosition);
-
-        NS_LOG_DEBUG ("Rx Power: " << rxPower);
-
-        // Get the ED sensitivity
+        Ptr<Node> node = *j;
+        Ptr<LoraNetDevice> loraNetDevice = node->GetDevice(0)->GetObject<LoraNetDevice>();
         Ptr<EndDeviceLoraPhy> edPhy = loraNetDevice->GetPhy()->GetObject<EndDeviceLoraPhy>();
-        const double* edSensitivity = edPhy->sensitivity;
+        if(edPhy->IsTransmitting()){
+            Ptr<Node> object = *j;
+            Ptr<MobilityModel> position = object->GetObject<MobilityModel>();
+            NS_ASSERT(position);
+            Ptr<NetDevice> netDevice = object->GetDevice(0);
+            Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice>();
+            NS_ASSERT(loraNetDevice);
+            Ptr<ClassAEndDeviceLorawanMac> mac =
+                loraNetDevice->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+            NS_ASSERT(mac);
 
-        if (rxPower > *edSensitivity)
-        {
-            rxMap[i] = rxPower;
+            Ptr<MobilityModel> originatorPosition = originator->GetObject<MobilityModel>();
+
+            // Assume devices transmit at 14 dBm
+            double rxPower = channel->GetRxPower(14, position, originatorPosition);
+
+            NS_LOG_DEBUG ("Rx Power: " << rxPower);
+
+            // Get the ED sensitivity
+            Ptr<EndDeviceLoraPhy> edPhy = loraNetDevice->GetPhy()->GetObject<EndDeviceLoraPhy>();
+            const double* edSensitivity = edPhy->sensitivity;
+
+            if (rxPower > *edSensitivity)
+            {
+                validRxPower = rxPower;
+            }
         }
-        i++;
     } // end loop on nodes
 
-    return rxMap;
+    return validRxPower;
 
 } //  end function
 

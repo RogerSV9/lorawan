@@ -118,7 +118,7 @@ class LorawanMacHelper
                                                   NodeContainer gateways,
                                                   Ptr<LoraChannel> channel);
 
-    static std::vector<double> computeCAD(Ptr<Node> sender, NodeContainer endDevices, Ptr<LoraChannel> channel);
+    static double computeRSSIforCAD(Ptr<Node> sender, NodeContainer endDevices, Ptr<LoraChannel> channel);
 
     /**
      * Set up the end device's data rates according to the given distribution.
