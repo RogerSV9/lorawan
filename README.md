@@ -35,7 +35,7 @@ You can use the following all-in-one command:
 
 ```bash
 git clone https://gitlab.com/nsnam/ns-3-dev.git && cd ns-3-dev &&
-git clone https://github.com/signetlabdei/lorawan src/lorawan &&
+git clone https://github.com/rogersv9/lorawan src/lorawan &&
 tag=$(< src/lorawan/NS3-VERSION) && tag=${tag#release } && git checkout $tag -b $tag
 ```
 
